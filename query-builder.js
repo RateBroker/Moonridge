@@ -76,7 +76,7 @@ module.exports = function MRQuery (model, clientQuery, isLive) {
     ind += 1
   }
 
-  query.lean(true)
+  // query.lean(true)
 
   return {opts: opts, mQuery: query}
 }
