@@ -36,7 +36,8 @@ module.exports = function moonridgeModel (name, schema, opts) {
   }
 
   // mongoose schema
-  var mgSchema = new mongoose.Schema(schema, opts.schemaOpts)
+  let isSchema = (schema instanceof mongoose.Schema);
+  var mgSchema = isSchema ? schema : new mongoose.Schema(schema, opts.schemaOpts);
 
   if (opts.statics) {
     _.extend(mgSchema.statics, opts.statics)
