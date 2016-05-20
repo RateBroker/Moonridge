@@ -2,7 +2,9 @@
 const RPC = require('socket.io-rpc')
 const _ = require('lodash')
 // const debug = require('debug')('moonridge:server')
+// 
 const MRModel = require('./mr-server-model')
+const exposeMethods = require('./mr-rpc-methods')
 const debug = require('debug')('moonridge:main')
 var userModel
 var moonridgeSingleton
@@ -50,7 +52,19 @@ function connect (connString, opts) {
  * @returns {MRModel}
  */
 function regNewModel (name, schema, opts) {
-  var model = MRModel.apply(moonridgeSingleton, arguments)
+  var model = MRModel.apply(moonridgeSingleton, arguments);
+
+  var discriminatorFunction = model.discriminator.bind(model);
+  model.discriminator = function (name, schema) {
+    let discriminatorModel = discriminatorFunction(name, schema);
+    let exposeCallback = exposeMethods(discriminatorModel, schema, {})
+    _.assign(discriminatorModel, {
+      _exposeCallback: exposeCallback
+    });
+    models[name] = discriminatorModel;
+    return discriminatorModel;
+  };
+
   models[name] = model
   return model
 }
