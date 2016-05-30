@@ -56,7 +56,37 @@ function regNewModel (name, schema, opts) {
 
   var discriminatorFunction = model.discriminator.bind(model);
   model.discriminator = function (name, schema) {
-    let discriminatorModel = discriminatorFunction(name, schema);
+
+    let discriminatorModel = null;
+    let newDocs = new Set();
+    schema.pre('save', function (next) {
+      if (this.isNew) {
+        newDocs.add(this._id)
+        if (opts.onExistence) {
+          return Promise.resolve(opts.onExistence.call(discriminatorModel, this)).then(() => {
+            next();
+          }, next);
+        }
+      }
+      next();
+    });
+
+    // Hook `save` post method called after creation/update
+    schema.post('save', function postSave (doc) {
+      if (newDocs.has(doc._id)) {
+        newDocs.delete(doc._id);
+        discriminatorModel.emit('create', doc);
+      } else {
+        discriminatorModel.emit('update', doc);
+      }
+      return true;
+    });
+
+    schema.post('remove', function postRemove (doc) {
+      discriminatorModel.emit('remove', doc);
+    });
+
+    discriminatorModel = discriminatorFunction(name, schema);
     let exposeCallback = exposeMethods(discriminatorModel, schema, {})
     _.assign(discriminatorModel, {
       _exposeCallback: exposeCallback
