@@ -26,6 +26,13 @@ describe('basic CRUD including working liveQueries', function () {
     })
   })
 
+  it('should return available models', function () {
+    return mr.fetchAllModels().then((models) => {
+      models[0].name.should.equal('location')
+      models.length.should.equal(4)
+    })
+  })
+
   it('should have a method getSchema for getting a schema of the model', function () {
     return fighterModel.getSchema().then(schema => {
       schema.should.eql({
@@ -111,7 +118,7 @@ describe('basic CRUD including working liveQueries', function () {
   })
 
   it('should allow to query the model', function () {
-    fighterModel.query().find({name: 'Arya'}).exec().then(function (arya) {
+    return fighterModel.query().findOne({name: 'Arya'}).exec().then(function (arya) {
       arya.health.should.eql(50)
     })
   })
@@ -121,13 +128,24 @@ describe('basic CRUD including working liveQueries', function () {
     return fighterModel.update(fighterEntity)
   })
 
-  it('should fail when we try to update nonexistent entity', function (done) {
+  it('should fail when we try to update with malformed _id', function (done) {
     fighterEntity.health += 10
     var fakeId = 'fake6c5c6983ef1828ec7af4'
     fighterModel.update({_id: fakeId}).then(function () {
       throw new Error('Entity should not have been updated')
     }, function (err) {
-      err.message.should.equal('no document to save found with _id: fake6c5c6983ef1828ec7af4')
+      err.message.should.equal('Cast to ObjectId failed for value "fake6c5c6983ef1828ec7af4" at path "_id"')
+      done()
+    })
+  })
+
+  it('should fail when we try to update nonexistent entity', function (done) {
+    fighterEntity.health += 10
+    var fakeId = '575846963e5d8a9541c41e54'
+    fighterModel.update({_id: fakeId}).then(function () {
+      throw new Error('Entity should not have been updated')
+    }, function (err) {
+      err.message.should.equal('no document to save found with _id: 575846963e5d8a9541c41e54')
       done()
     })
   })
@@ -152,5 +170,27 @@ describe('basic CRUD including working liveQueries', function () {
       ret.should.equal('static method works')
       done()
     })
+  })
+
+  it("should be able to remove documents, which don't match anymore from the live query result", function (done) {
+    return fighterModel.create({name: 'Gendry', health: 50}).then(() => {
+      LQ = fighterModel.liveQuery().find().gte('health', 10).exec()
+      LQ.on('init', function (params) {
+        const gendry = params.docs[0]
+        gendry.health = 0
+        LQ.onAny(function (evName, params) {
+          // console.log(evName, params)
+          if (evName === 'update') {
+            LQ.result.length.should.equal(0)
+            console.log(gendry)
+            
+            fighterModel.remove(gendry).then(done)
+          }
+        })
+        fighterModel.update(gendry)
+      })
+
+    })
+
   })
 })
