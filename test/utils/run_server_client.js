@@ -6,7 +6,7 @@ process.on('unhandledRejection', function (error, promise) {
 })
 const server = cp.fork('./test/e2e-smoketest/server.js')
 
-const $MR = require('../../Moonridge-client/moonridge-client')
+const $MR = require('moonridge-client')
 
 // Moonridge backend
 const mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}})
