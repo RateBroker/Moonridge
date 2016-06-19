@@ -15,8 +15,6 @@ app.use('/api', MR.baucis())
 
 app.use(require('morgan')('dev'))
 
-app.use(staticMW('./Moonridge-client/')) // only needed when moonridge is not as npm module
-
 app.use(staticMW('./test/e2e-smoketest/'))
 app.use(staticMW('./test/e2e-smoketest/angular'))
 app.use(staticMW('./test/e2e-smoketest/aurelia'))
